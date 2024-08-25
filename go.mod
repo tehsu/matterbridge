@@ -46,7 +46,7 @@ require (
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	github.com/yaegashi/msgraph.go v0.1.4
 	github.com/zfjagann/golang-ring v0.0.0-20220330170733-19bcea1b6289
-	go.mau.fi/whatsmeow v0.0.0-20240520180327-81f8f07f1dfb
+	go.mau.fi/whatsmeow v0.0.0-20240821142752-3d63c6fcc1a7
 	golang.org/x/image v0.16.0
 	golang.org/x/oauth2 v0.20.0
 	golang.org/x/text v0.15.0

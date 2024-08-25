@@ -490,7 +490,7 @@ go.mau.fi/libsignal/util/optional
 go.mau.fi/util/jsontime
 go.mau.fi/util/random
 go.mau.fi/util/retryafter
-# go.mau.fi/whatsmeow v0.0.0-20240520180327-81f8f07f1dfb
+# go.mau.fi/whatsmeow v0.0.0-20240821142752-3d63c6fcc1a7
 ## explicit; go 1.21
 go.mau.fi/whatsmeow
 go.mau.fi/whatsmeow/appstate
