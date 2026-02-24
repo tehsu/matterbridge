@@ -402,7 +402,7 @@ func (b *Bwhatsapp) Send(msg config.Message) (string, error) {
 			return "", nil
 		}
 
-		_, err := b.wc.RevokeMessage(groupJID, msg.ID)
+		_, err := b.wc.RevokeMessage(context.TODO(), groupJID, msg.ID)
 
 		return "", err
 	}

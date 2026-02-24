@@ -428,8 +428,8 @@ func (cli *Client) SendMessage(ctx context.Context, to types.JID, message *waE2E
 // The return value is the timestamp of the message from the server.
 //
 // Deprecated: This method is deprecated in favor of BuildRevoke
-func (cli *Client) RevokeMessage(chat types.JID, id types.MessageID) (SendResponse, error) {
-	return cli.SendMessage(context.TODO(), chat, cli.BuildRevoke(chat, types.EmptyJID, id))
+func (cli *Client) RevokeMessage(ctx context.Context, chat types.JID, id types.MessageID) (SendResponse, error) {
+	return cli.SendMessage(ctx, chat, cli.BuildRevoke(chat, types.EmptyJID, id))
 }
 
 // BuildMessageKey builds a MessageKey object, which is used to refer to previous messages
