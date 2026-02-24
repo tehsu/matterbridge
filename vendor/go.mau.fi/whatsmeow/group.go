@@ -455,8 +455,8 @@ func (cli *Client) JoinGroupWithLink(code string) (types.JID, error) {
 }
 
 // GetJoinedGroups returns the list of groups the user is participating in.
-func (cli *Client) GetJoinedGroups() ([]*types.GroupInfo, error) {
-	resp, err := cli.sendGroupIQ(context.TODO(), iqGet, types.GroupServerJID, waBinary.Node{
+func (cli *Client) GetJoinedGroups(ctx context.Context) ([]*types.GroupInfo, error) {
+	resp, err := cli.sendGroupIQ(ctx, iqGet, types.GroupServerJID, waBinary.Node{
 		Tag: "participating",
 		Content: []waBinary.Node{
 			{Tag: "participants"},
