@@ -45,6 +45,7 @@ const (
 	MediaHistory  MediaType = "WhatsApp History Keys"
 	MediaAppState MediaType = "WhatsApp App State Keys"
 
+	MediaStickerPack   MediaType = "WhatsApp Sticker Pack Keys"
 	MediaLinkThumbnail MediaType = "WhatsApp Link Thumbnail Keys"
 )
 
@@ -81,6 +82,7 @@ var (
 	_ DownloadableMessage   = (*waE2E.VideoMessage)(nil)
 	_ DownloadableMessage   = (*waE2E.DocumentMessage)(nil)
 	_ DownloadableMessage   = (*waE2E.StickerMessage)(nil)
+	_ DownloadableMessage   = (*waE2E.StickerPackMessage)(nil)
 	_ DownloadableMessage   = (*waHistorySync.StickerMetadata)(nil)
 	_ DownloadableMessage   = (*waE2E.HistorySyncNotification)(nil)
 	_ DownloadableMessage   = (*waServerSync.ExternalBlobReference)(nil)
@@ -110,6 +112,7 @@ var classToMediaType = map[protoreflect.Name]MediaType{
 	"StickerMessage":  MediaImage,
 	"StickerMetadata": MediaImage,
 
+	"StickerPackMessage":      MediaStickerPack,
 	"HistorySyncNotification": MediaHistory,
 	"ExternalBlobReference":   MediaAppState,
 }
@@ -126,10 +129,13 @@ var mediaTypeToMMSType = map[MediaType]string{
 	MediaHistory:  "md-msg-hist",
 	MediaAppState: "md-app-state",
 
+	MediaStickerPack:   "sticker-pack",
 	MediaLinkThumbnail: "thumbnail-link",
 }
 
 // DownloadAny loops through the downloadable parts of the given message and downloads the first non-nil item.
+//
+// Deprecated: it's recommended to find the specific message type you want to download manually and use the Download method instead.
 func (cli *Client) DownloadAny(ctx context.Context, msg *waE2E.Message) (data []byte, err error) {
 	if msg == nil {
 		return nil, ErrNothingDownloadableFound
@@ -160,6 +166,10 @@ func getSize(msg DownloadableMessage) int {
 		return -1
 	}
 }
+
+// ReturnDownloadWarnings controls whether the Download function returns non-fatal validation warnings.
+// Currently, these include [ErrFileLengthMismatch] and [ErrInvalidMediaSHA256].
+var ReturnDownloadWarnings = true
 
 // DownloadThumbnail downloads a thumbnail from a message.
 //
@@ -245,6 +255,9 @@ func (cli *Client) DownloadMediaWithPath(
 	mediaType MediaType,
 	mmsType string,
 ) (data []byte, err error) {
+	if !strings.HasPrefix(directPath, "/") {
+		return nil, fmt.Errorf("media download path does not start with slash: %s", directPath)
+	}
 	var mediaConn *MediaConn
 	mediaConn, err = cli.refreshMediaConn(ctx, false)
 	if err != nil {
@@ -293,10 +306,12 @@ func (cli *Client) downloadAndDecrypt(
 
 	} else if data, err = cbcutil.Decrypt(cipherKey, iv, ciphertext); err != nil {
 		err = fmt.Errorf("failed to decrypt file: %w", err)
-	} else if fileLength >= 0 && len(data) != fileLength {
-		err = fmt.Errorf("%w: expected %d, got %d", ErrFileLengthMismatch, fileLength, len(data))
-	} else if len(fileSHA256) == 32 && sha256.Sum256(data) != *(*[32]byte)(fileSHA256) {
-		err = ErrInvalidMediaSHA256
+	} else if ReturnDownloadWarnings {
+		if fileLength >= 0 && len(data) != fileLength {
+			err = fmt.Errorf("%w: expected %d, got %d", ErrFileLengthMismatch, fileLength, len(data))
+		} else if len(fileSHA256) == 32 && sha256.Sum256(data) != *(*[32]byte)(fileSHA256) {
+			err = ErrInvalidMediaSHA256
+		}
 	}
 	return
 }
@@ -353,7 +368,7 @@ func (cli *Client) doMediaDownloadRequest(ctx context.Context, url string) (*htt
 		req.Header.Set("User-Agent", cli.MessengerConfig.UserAgent)
 	}
 	// TODO user agent for whatsapp downloads?
-	resp, err := cli.http.Do(req)
+	resp, err := cli.mediaHTTP.Do(req)
 	if err != nil {
 		return nil, err
 	}
