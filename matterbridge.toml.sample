@@ -1538,6 +1538,13 @@ SessionFile="session-48111222333.gob"
 # optional (default false)
 QrOnWhiteTerminal=true
 
+# When built with the whatsappmulti build tag, set this to true to link the bridge to WhatsApp
+# using a pairing code generated for the Number above, instead of scanning a QR code.
+# Open WhatsApp on your phone > Linked Devices > Link a Device > Link with phone number instead,
+# and enter the code that gets logged to the console.
+# optional (default false, whatsappmulti build only)
+UsePairingCode=false
+
 # Messages will be seen by other WhatsApp contacts as coming from the bridge. Original nick will be part of the message.
 RemoteNickFormat="@{NICK}: "
 

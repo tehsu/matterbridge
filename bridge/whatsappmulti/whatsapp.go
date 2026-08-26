@@ -28,7 +28,12 @@ import (
 
 const (
 	// Account config parameters
-	cfgNumber = "Number"
+	cfgNumber         = "Number"
+	cfgUsePairingCode = "UsePairingCode"
+
+	// pairClientDisplayName must be formatted as "Browser (OS)" using a browser/OS pair that
+	// WhatsApp's servers recognize, see whatsmeow.Client.PairPhone.
+	pairClientDisplayName = "Chrome (Linux)"
 )
 
 // Bwhatsapp Bridge structure keeping all the information needed for relying
@@ -99,10 +104,27 @@ func (b *Bwhatsapp) Connect() error {
 	}
 
 	if b.wc.Store.ID == nil {
+		usePairingCode := b.GetBool(cfgUsePairingCode)
+		linkingCodeRequested := false
+
 		for evt := range qrChan {
-			if evt.Event == "code" {
+			switch {
+			case evt.Event == "code" && usePairingCode && !linkingCodeRequested:
+				// The first QR event confirms the connection is established, which is required
+				// before requesting a pairing code. We still let the QR codes keep being emitted
+				// in the background (and ignore them below) since we're linking via phone number instead.
+				linkingCodeRequested = true
+
+				linkingCode, pairErr := b.wc.PairPhone(context.Background(), number, true, whatsmeow.PairClientChrome, pairClientDisplayName)
+				if pairErr != nil {
+					return fmt.Errorf("failed to request WhatsApp pairing code: %w", pairErr)
+				}
+
+				b.Log.Infof("WhatsApp pairing code for %s: %s", number, linkingCode)
+				b.Log.Infoln("On your phone: WhatsApp > Linked Devices > Link a Device > Link with phone number instead, then enter the code above.")
+			case evt.Event == "code" && !usePairingCode:
 				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-			} else {
+			default:
 				b.Log.Infof("QR channel result: %s", evt.Event)
 			}
 		}
