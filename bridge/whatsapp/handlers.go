@@ -90,7 +90,7 @@ func (b *Bwhatsapp) HandleTextMessage(message whatsapp.TextMessage) {
 	}
 
 	// translate sender's JID to the nicest username we can get
-	senderName := b.getSenderName(senderJID)
+	senderName := b.getSenderName(senderJID, message.Info.PushName)
 	if senderName == "" {
 		senderName = "Someone" // don't expose telephone number
 	}
@@ -146,7 +146,7 @@ func (b *Bwhatsapp) HandleImageMessage(message whatsapp.ImageMessage) {
 		senderJID = *message.Info.Source.Participant
 	}
 
-	senderName := b.getSenderName(message.Info.SenderJid)
+	senderName := b.getSenderName(message.Info.SenderJid, message.Info.PushName)
 	if senderName == "" {
 		senderName = "Someone" // don't expose telephone number
 	}
@@ -213,7 +213,7 @@ func (b *Bwhatsapp) HandleVideoMessage(message whatsapp.VideoMessage) {
 		senderJID = *message.Info.Source.Participant
 	}
 
-	senderName := b.getSenderName(message.Info.SenderJid)
+	senderName := b.getSenderName(message.Info.SenderJid, message.Info.PushName)
 	if senderName == "" {
 		senderName = "Someone" // don't expose telephone number
 	}
@@ -274,7 +274,7 @@ func (b *Bwhatsapp) HandleAudioMessage(message whatsapp.AudioMessage) {
 		senderJID = *message.Info.Source.Participant
 	}
 
-	senderName := b.getSenderName(message.Info.SenderJid)
+	senderName := b.getSenderName(message.Info.SenderJid, message.Info.PushName)
 	if senderName == "" {
 		senderName = "Someone" // don't expose telephone number
 	}
@@ -335,7 +335,7 @@ func (b *Bwhatsapp) HandleDocumentMessage(message whatsapp.DocumentMessage) {
 		senderJID = *message.Info.Source.Participant
 	}
 
-	senderName := b.getSenderName(message.Info.SenderJid)
+	senderName := b.getSenderName(message.Info.SenderJid, message.Info.PushName)
 	if senderName == "" {
 		senderName = "Someone" // don't expose telephone number
 	}
