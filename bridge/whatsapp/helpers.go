@@ -93,7 +93,14 @@ func (b *Bwhatsapp) restoreSession() (*whatsapp.Session, error) {
 	return &session, nil
 }
 
-func (b *Bwhatsapp) getSenderName(senderJid string) string {
+// getSenderName resolves the best display name for senderJid from the
+// linked phone's contact list. pushName is the sender's self-reported
+// WhatsApp display name (sent with every message) and is used as a last
+// resort before the caller falls back to "Someone" — this covers the
+// common case of a sender who isn't a saved phone contact, which would
+// otherwise always show up as "Someone" even though WhatsApp already told
+// us their name.
+func (b *Bwhatsapp) getSenderName(senderJid, pushName string) string {
 	if sender, exists := b.users[senderJid]; exists {
 		if sender.Name != "" {
 			return sender.Name
@@ -124,10 +131,12 @@ func (b *Bwhatsapp) getSenderName(senderJid string) string {
 		}
 		// if user is not in phone contacts
 		// same as above
-		return contact.Notify
+		if contact.Notify != "" {
+			return contact.Notify
+		}
 	}
 
-	return ""
+	return pushName
 }
 
 func (b *Bwhatsapp) getSenderNotify(senderJid string) string {
