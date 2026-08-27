@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/xid"
 	ring "github.com/zfjagann/golang-ring"
 )
 
@@ -129,17 +130,43 @@ func (b *API) handleHealthcheck(c echo.Context) error {
 	return c.String(http.StatusOK, "OK")
 }
 
+// stampMessage fills in the fields the API bridge controls for every inbound
+// message.
+//
+// Messages are given a generated ID so the gateway records them in its message
+// cache. That lets the sender refer to the message afterwards (to delete it),
+// and lets replies coming back from other bridges resolve to it.
+//
+// A msg_delete keeps the ID it was posted with, since that ID names the message
+// to remove; the gateway translates it to each destination's own message ID.
+func (b *API) stampMessage(message *config.Message) {
+	// these values are fixed
+	message.Channel = "api"
+	message.Protocol = "api"
+	message.Account = b.Account
+	message.Timestamp = time.Now()
+
+	if message.Event == config.EventMsgDelete {
+		// the gateway drops messages with empty text before they reach a
+		// bridge, so mirror what the other bridges put on a delete event
+		if message.Text == "" {
+			message.Text = config.EventMsgDelete
+		}
+		return
+	}
+
+	message.ID = xid.New().String()
+}
+
 func (b *API) handlePostMessage(c echo.Context) error {
 	message := config.Message{}
 	if err := c.Bind(&message); err != nil {
 		return err
 	}
-	// these values are fixed
-	message.Channel = "api"
-	message.Protocol = "api"
-	message.Account = b.Account
-	message.ID = ""
-	message.Timestamp = time.Now()
+	if message.Event == config.EventMsgDelete && message.ID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "id is required to delete a message")
+	}
+	b.stampMessage(&message)
 
 	var (
 		fm map[string]interface{}
@@ -217,11 +244,11 @@ func (b *API) handleStream(c echo.Context) error {
 }
 
 func (b *API) handleWebsocketMessage(message config.Message, s *melody.Session) {
-	message.Channel = "api"
-	message.Protocol = "api"
-	message.Account = b.Account
-	message.ID = ""
-	message.Timestamp = time.Now()
+	if message.Event == config.EventMsgDelete && message.ID == "" {
+		b.Log.Errorf("ignoring msg_delete without an id from %s", message.Username)
+		return
+	}
+	b.stampMessage(&message)
 
 	data, err := json.Marshal(message)
 	if err != nil {
